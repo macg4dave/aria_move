@@ -1,100 +1,99 @@
 #!/bin/sh
 
 # Variables for paths (no trailing slashes)
-DOWNLOAD=/mnt/World/incoming
-COMPLETE=/mnt/World/completed
-LOG=/mnt/World/mvcompleted.log
+DOWNLOAD="/mnt/World/incoming"
+COMPLETE="/mnt/World/completed"
+LOG_FILE="/mnt/World/mvcompleted.log"
+TASK_ID=$1
+NUM_FILES=$2
+SOURCE_FILE=$3
 
-# Logging function
-log() {
-    echo "$(date) $1" >> "$LOG"
+# Function to log messages
+log()  {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
 }
 
-# Function to check and rename if file/folder exists
-find_unique_name() {
-    local path="$1"
-    local base_name=$(basename "$path")
-    local dir_name=$(dirname "$path")
+# Function to find a unique name if there's a conflict
+find_unique_name()  {
+    local base=$(basename "$1")
+    local dir=$(dirname "$1")
+    local count=0
+    local new_base=$base
 
-    # Split base_name into name and extension
-    local name="${base_name%.*}"
-    local ext="${base_name##*.}"
-    
-    # Check if the filename has an extension
-    if [ "$name" = "$ext" ]; then
-        ext=""
-    else
-        ext=".$ext"
-    fi
-
-    local new_name="$base_name"
-    local count=1
-
-    while [ -e "$dir_name/$new_name" ]; do
-        new_name="${name}_${count}${ext}"
+    while [ -e "$dir/$new_base" ]; do
         count=$((count + 1))
+        new_base="${base%.*}"_"$count.${base##*.}"
     done
 
-    echo "$dir_name/$new_name"
+    echo "$dir/$new_base"
 }
 
 # Function to move files and handle errors
-move_file() {
+move_file()  {
     local src=$1
     local dst_dir=$2
 
-    # Ensure destination directory exists and is writable
     if [ ! -d "$dst_dir" ]; then
-        if [ -e "$dst_dir" ]; then
-            log "ERROR: $dst_dir exists but is not a directory."
-            exit 1
-        else
-            mkdir -p "$dst_dir" || { log "ERROR: Failed to create directory $dst_dir."; exit 1; }
-        fi
+        mkdir -p "$dst_dir" || { log "ERROR: Failed to create directory $dst_dir."; exit 1; }
     fi
 
-    if [ ! -w "$dst_dir" ]; then
-        log "ERROR: Destination directory $dst_dir is not writable."
-        exit 1
-    fi
-
-    # Find a unique name if there's a conflict
     local dst=$(find_unique_name "$dst_dir/$(basename "$src")")
-    mv --backup=t "$src" "$dst" >> "$LOG" 2>&1 || { log "ERROR: Failed to move $src to $dst."; exit 1; }
+    mv --backup=t "$src" "$dst" >> "$LOG_FILE" 2>&1 || { log "ERROR: Failed to move $src to $dst."; exit 1; }
+
     log "INFO: Moved $src to $dst."
 }
 
-# Main script starts here
-log "INFO: Task ID: $1 Completed."
+# Function to move all files within a directory
+move_directory_contents() {
+    local src_dir=$1
+    local dst_dir=$2
 
-if [ "$2" -eq 0 ]; then
-    log "INFO: No file to move for Task ID $1."
+    # Ensure the destination directory exists
+    mkdir -p "$dst_dir" || { log "ERROR: Failed to create directory $dst_dir."; exit 1; }
+
+    # Loop through all files and directories in the source directory
+    for file in "$src_dir"/*; do
+        move_file "$file" "$dst_dir"
+    done
+}
+
+# Main script starts here
+log "INFO: Task ID: $TASK_ID Completed."
+log "DEBUG: SOURCE_FILE is $SOURCE_FILE"
+
+if [ "$NUM_FILES" -eq 0 ]; then
+    log "INFO: No file to move for Task ID $TASK_ID."
     exit 0
 fi
 
-SRC=$3
-SRCDIR=$(dirname "$SRC")
-DSTDIR=$(echo "$SRCDIR" | sed "s,$DOWNLOAD,$COMPLETE,g")
+# Check if SOURCE_FILE is in the root of the incoming directory
+if [ "$(dirname "$SOURCE_FILE")" = "$DOWNLOAD" ]; then
+    SOURCE_DIR="$DOWNLOAD"
+    DESTINATION_DIR="$COMPLETE"
+    log "DEBUG: File is in the root incoming directory"
+else
+    SOURCE_DIR=$(dirname "$SOURCE_FILE")
+    DESTINATION_DIR=$(echo "$SOURCE_DIR" | sed "s,$DOWNLOAD,$COMPLETE,")
+    log "DEBUG: File is in a subdirectory"
+fi
 
-# Ensure the source directory is within the expected download directory
-if [ "$SRCDIR" = "$DSTDIR" ]; then
-    log "ERROR: $SRC is not under $DOWNLOAD."
+log "DEBUG: SOURCE_DIR is $SOURCE_DIR"
+log "DEBUG: DESTINATION_DIR is $DESTINATION_DIR"
+
+# Prevent moving the entire incoming directory
+if [ "$SOURCE_DIR" = "$DOWNLOAD" ] && [ -d "$SOURCE_FILE" ]; then
+    log "ERROR: Attempted to move the entire $DOWNLOAD directory, which is not allowed."
     exit 1
 fi
 
-# Move the file and clean up
-move_file "$SRC" "$DSTDIR"
+# Check if it's a directory and move its contents, otherwise move the file
+if [ -d "$SOURCE_FILE" ]; then
+    log "DEBUG: Moving contents of the directory $SOURCE_FILE"
+    move_directory_contents "$SOURCE_FILE" "$DESTINATION_DIR/$(basename "$SOURCE_FILE")"
+else
+    log "DEBUG: Moving a single file $SOURCE_FILE"
+    move_file "$SOURCE_FILE" "$DESTINATION_DIR"
+fi
 
-# Clean up empty directories
-while [ "$SRCDIR" != "$DOWNLOAD" ]; do
-    if [ ! "$(ls -A "$SRCDIR")" ]; then
-        rmdir "$SRCDIR" >> "$LOG" 2>&1 || { log "ERROR: Failed to remove directory $SRCDIR."; exit 1; }
-        SRCDIR=$(dirname "$SRCDIR")
-    else
-        break
-    fi
-done
-
-log "INFO: Task ID $1 completed successfully."
+log "INFO: Task ID $TASK_ID completed successfully."
 exit 0
-
