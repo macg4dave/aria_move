@@ -12,13 +12,26 @@ log() {
 
 # Function to check and rename if file/folder exists
 find_unique_name() {
-    local base_name=$(basename "$1")
-    local dir_name=$(dirname "$1")
+    local path="$1"
+    local base_name=$(basename "$path")
+    local dir_name=$(dirname "$path")
+
+    # Split base_name into name and extension
+    local name="${base_name%.*}"
+    local ext="${base_name##*.}"
+    
+    # Check if the filename has an extension
+    if [ "$name" = "$ext" ]; then
+        ext=""
+    else
+        ext=".$ext"
+    fi
+
     local new_name="$base_name"
     local count=1
 
     while [ -e "$dir_name/$new_name" ]; do
-        new_name="${base_name}_${count}"
+        new_name="${name}_${count}${ext}"
         count=$((count + 1))
     done
 
