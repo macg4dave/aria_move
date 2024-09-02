@@ -20,13 +20,13 @@ log() {
             echo "$datetime - NORMAL: $message" >> "$LOG_FILE"
             ;;
         ERROR)
-            echo "$datetime - ERROR: $message" >> "$LOG_FILE"
+            [ $LOG_LEVEL -ge 2 ] && echo "$datetime - ERROR: $message" >> "$LOG_FILE"
             ;;
         INFO)
-            [ $LOG_LEVEL -ge 2 ] && echo "$datetime - INFO: $message" >> "$LOG_FILE"
+            [ $LOG_LEVEL -ge 3 ] && echo "$datetime - INFO: $message" >> "$LOG_FILE"
             ;;
         DEBUG)
-            [ $LOG_LEVEL -ge 3 ] && echo "$datetime - DEBUG: $message" >> "$LOG_FILE"
+            [ $LOG_LEVEL -ge 4 ] && echo "$datetime - DEBUG: $message" >> "$LOG_FILE"
             ;;
     esac
 }
