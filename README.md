@@ -35,7 +35,7 @@
     <li><code>DOWNLOAD</code>: Path to the incoming downloads directory (no trailing slash).</li>
     <li><code>COMPLETE</code>: Path to the completed downloads directory (no trailing slash).</li>
     <li><code>LOG_FILE</code>: Path to the log file.</li>
-    <li><code>LOG_LEVEL</code>: Set the logging level (1=ERROR, 2=INFO+ERROR, 3=DEBUG+INFO+ERROR).</li>
+    <li><code>LOG_LEVEL</code>: Set the logging level.</li>
 </ul>
 
 <h2>Usage</h2>
@@ -52,7 +52,7 @@
 <ul>
     <li>Completion of download tasks.</li>
     <li>Any errors encountered during file or directory moves.</li>
-    <li>Debug information (if <code>LOG_LEVEL</code> is set to 3).</li>
+    <li>Debug information.</li>
 </ul>
 <p>Log entries include timestamps for easier tracking.</p>
 
@@ -63,7 +63,7 @@
 DOWNLOAD="/mnt/World/incoming"
 COMPLETE="/mnt/World/completed"
 LOG_FILE="/mnt/World/mvcompleted.log"
-LOG_LEVEL=2  # Log level set to INFO+ERROR
+LOG_LEVEL=4
 
 </code></pre>
 
