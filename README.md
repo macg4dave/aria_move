@@ -16,12 +16,6 @@
     <li>Handles both individual files and entire directories.</li>
     <li>Ensures unique file names to prevent overwriting existing files.</li>
     <li>Configurable logging levels:
-        <ul>
-            <li><strong>Level 1:</strong> Logs only errors.</li>
-            <li><strong>Level 2:</strong> Logs errors and informational messages.</li>
-            <li><strong>Level 3:</strong> Logs errors, informational messages, and debug details.</li>
-        </ul>
-    </li>
 </ul>
 
 <h2>Installation</h2>
