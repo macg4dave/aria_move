@@ -106,4 +106,5 @@ else
 fi
 
 log NORMAL "Task ID $TASK_ID completed successfully."
+log NORMAL "Moving $SOURCE_FILE completed successfully."
 exit 0
