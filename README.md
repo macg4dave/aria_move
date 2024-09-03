@@ -22,7 +22,7 @@
 <ol>
     <li>Download the script and place it in your desired directory.</li>
     <li>Make the script executable:
-        <pre><code>chmod +x aria_move.sh</code></pre>
+        <pre><code>$ chmod +x aria_move.sh</code></pre>
     </li>
 </ol>
 
