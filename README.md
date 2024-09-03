@@ -43,7 +43,7 @@
     </li>
     or
         <li>Configure your <code>aria2c</code> settings to trigger this script on download completion. Add the following line to your <code>aria2.conf</code>:
-        <pre><code>$aria2c --on-download-complete=/path/to/aria_move.sh</code></pre>
+        <pre><code>$ aria2c --on-download-complete=/path/to/aria_move.sh</code></pre>
     </li>
 </ol>
 <h2>Logging</h2>
