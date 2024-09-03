@@ -12,8 +12,9 @@ LOG_LEVEL=1  # 1=NORMAL, 2=NORMAL+INFO, 3=NORMAL+INFO+ERROR, 4=NORMAL+DEBUG+INFO
 # Function to log messages based on log level
 log() {
     local level=$1
+    local datetime
     local message=$2
-    local datetime=$(printf '%(%Y-%m-%d %H:%M:%S)T\n' -1)
+    datetime=$(printf '%(%Y-%m-%d %H:%M:%S)T\n' -1)
 
     case $level in
         NORMAL)
@@ -33,16 +34,20 @@ log() {
 
 # Function to find a unique name if there's a conflict
 find_unique_name() {
-    local base=$(basename "$1")
-    local dir=$(dirname "$1")
+    local base
+    local dir
     local count=0
-    local new_base=$base
+    local new_base
+
+    base=$(basename "$1")
+    dir=$(dirname "$1")
+    new_base=$base
 
     log DEBUG "Finding unique name for $1"
 
     while [ -e "$dir/$new_base" ]; do
         count=$((count + 1))
-        new_base="${base%.*}"_"$count.${base##*.}"
+        new_base="${base%.*}_${count}.${base##*.}"
     done
 
     log DEBUG "Unique name found: $dir/$new_base"
@@ -53,6 +58,7 @@ find_unique_name() {
 sync_file() {
     local src=$1
     local dst_dir=$2
+    local dst
 
     log DEBUG "Attempting to sync file $src to directory $dst_dir"
 
@@ -60,13 +66,13 @@ sync_file() {
         mkdir -p "$dst_dir" || { log ERROR "Failed to create directory $dst_dir."; exit 1; }
     fi
 
-    local dst=$(find_unique_name "$dst_dir/$(basename "$src")")
+    dst=$(find_unique_name "$dst_dir/$(basename "$src")")
     rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src" "$dst" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src to $dst."; exit 1; }
 
     log INFO "Synced $src to $dst and removed source."
 }
 
-# Function to sync all files within a directory
+# Function to sync all files within a directory, including all subdirectories
 sync_directory() {
     local src_dir=$1
     local dst_dir=$2
@@ -75,12 +81,16 @@ sync_directory() {
 
     mkdir -p "$dst_dir" || { log ERROR "Failed to create directory $dst_dir."; exit 1; }
 
-    rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src_dir/" "$dst_dir/" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src_dir to $dst_dir."; exit 1; }
+    rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src_dir/" "$dst_dir/" --log-file="$LOG_FILE" --log-file-format="%t - INFO: Copied %f" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src_dir to $dst_dir."; exit 1; }
 
     log INFO "Synced directory $src_dir to $dst_dir and removed source."
 
     # Attempt to remove the source directory and its empty parent directories if empty
-    find "$src_dir" -type d -empty -delete && log INFO "Deleted empty directories in $src_dir." || log DEBUG "Some directories in $src_dir were not empty or failed to delete."
+    if find "$src_dir" -type d -empty -delete; then
+        log INFO "Deleted empty directories in $src_dir."
+    else
+        log DEBUG "Some directories in $src_dir were not empty or failed to delete."
+    fi
 }
 
 # Main script starts here
@@ -109,7 +119,11 @@ else
     sync_file "$SOURCE_FILE" "$DESTINATION_DIR"
 
     # Attempt to remove the source directory and its empty parent directories if empty
-    find "$SOURCE_DIR" -type d -empty -delete && log INFO "Deleted empty directories in $SOURCE_DIR." || log DEBUG "Some directories in $SOURCE_DIR were not empty or failed to delete."
+    if find "$SOURCE_DIR" -type d -empty -delete; then
+        log INFO "Deleted empty directories in $SOURCE_DIR."
+    else
+        log DEBUG "Some directories in $SOURCE_DIR were not empty or failed to delete."
+    fi
 fi
 
 log NORMAL "Task ID $TASK_ID completed successfully."
