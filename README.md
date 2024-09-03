@@ -22,10 +22,7 @@
 <ol>
     <li>Download the script and place it in your desired directory.</li>
     <li>Make the script executable:
-        <pre><code>chmod +x aria_move.sh</code></pre>
-    </li>
-    <li>Configure your <code>aria2c</code> settings to trigger this script on download completion. Add the following line to your <code>aria2.conf</code>:
-        <pre><code>on-download-complete=/path/to/aria_move.sh</code></pre>
+        <pre><code>$ chmod +x aria_move.sh</code></pre>
     </li>
 </ol>
 
@@ -39,14 +36,16 @@
 </ul>
 
 <h2>Usage</h2>
-<p>The script is designed to be called by <code>aria2c</code> when a download is completed. It takes the following arguments:</p>
-<ul>
-    <li><strong>TASK_ID</strong>: The ID of the completed download task.</li>
-    <li><strong>NUM_FILES</strong>: The number of files in the completed task.</li>
-    <li><strong>SOURCE_FILE</strong>: The path to the downloaded file or directory.</li>
-</ul>
-<p>Based on these arguments, the script moves the file or directory from the <code>DOWNLOAD</code> directory to the <code>COMPLETE</code> directory.</p>
-
+<p>The script is designed to be called by <code>aria2c</code> when a download is completed.</p>
+<ol>
+    <li>Configure your <code>aria2c</code> settings to trigger this script on download completion. Add the following line to your <code>aria2.conf</code>:
+        <pre><code>on-download-complete=/path/to/aria_move.sh</code></pre>
+    </li>
+    or
+        <li>Configure your <code>aria2c</code> settings to trigger this script on download completion. Add the following line to your <code>aria2.conf</code>:
+        <pre><code>$ aria2c --on-download-complete=/path/to/aria_move.sh</code></pre>
+    </li>
+</ol>
 <h2>Logging</h2>
 <p>The script logs various events to a specified log file, including:</p>
 <ul>
@@ -59,12 +58,10 @@
 <h2>Examples</h2>
 <p>Here’s an example of how you might configure and use the script:</p>
 <pre><code>#!/bin/sh
-
 DOWNLOAD="/mnt/World/incoming"
 COMPLETE="/mnt/World/completed"
 LOG_FILE="/mnt/World/mvcompleted.log"
 LOG_LEVEL=4
-
 </code></pre>
 
 <h2>Contributing</h2>
