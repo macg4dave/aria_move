@@ -13,7 +13,7 @@ LOG_LEVEL=1  # 1=NORMAL, 2=NORMAL+INFO, 3=NORMAL+INFO+ERROR, 4=NORMAL+DEBUG+INFO
 log() {
     local level=$1
     local message=$2
-    local datetime=$(date '+%Y-%m-%d %H:%M:%S')
+    local datetime=$(printf '%(%Y-%m-%d %H:%M:%S)T\n' -1)
 
     case $level in
         NORMAL)
@@ -61,7 +61,7 @@ sync_file() {
     fi
 
     local dst=$(find_unique_name "$dst_dir/$(basename "$src")")
-    rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src" "$dst" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src to $dst."; exit 1; }
+    /usr/bin/rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src" "$dst" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src to $dst."; exit 1; }
 
     log INFO "Synced $src to $dst and removed source."
 }
@@ -75,9 +75,12 @@ sync_directory() {
 
     mkdir -p "$dst_dir" || { log ERROR "Failed to create directory $dst_dir."; exit 1; }
 
-    rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src_dir/" "$dst_dir/" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src_dir to $dst_dir."; exit 1; }
+    /usr/bin/rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src_dir/" "$dst_dir/" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src_dir to $dst_dir."; exit 1; }
 
     log INFO "Synced directory $src_dir to $dst_dir and removed source."
+
+    # Attempt to remove the source directory if it's empty
+    rmdir "$src_dir" && log INFO "Deleted source directory $src_dir as it is empty." || log DEBUG "Source directory $src_dir is not empty or failed to delete."
 }
 
 # Main script starts here
@@ -89,10 +92,10 @@ if [ "$NUM_FILES" -eq 0 ]; then
     exit 0
 fi
 
-# Determine the source and destination directories
+# Determine the source and destination directories using parameter expansion
 SOURCE_DIR=$(dirname "$SOURCE_FILE")
-RELATIVE_DIR=$(realpath --relative-to="$DOWNLOAD" "$SOURCE_DIR")
-DESTINATION_DIR="$COMPLETE/$RELATIVE_DIR"
+RELATIVE_DIR="${SOURCE_DIR#"$DOWNLOAD"}"
+DESTINATION_DIR="$COMPLETE$RELATIVE_DIR"
 
 log DEBUG "SOURCE_DIR is $SOURCE_DIR"
 log DEBUG "DESTINATION_DIR is $DESTINATION_DIR"
@@ -104,6 +107,9 @@ if [ "$(basename "$SOURCE_DIR")" != "$(basename "$DOWNLOAD")" ]; then
 else
     log DEBUG "Syncing a single file $SOURCE_FILE"
     sync_file "$SOURCE_FILE" "$DESTINATION_DIR"
+
+    # Attempt to remove the source directory if it's empty
+    rmdir "$SOURCE_DIR" && log INFO "Deleted source directory $SOURCE_DIR as it is empty." || log DEBUG "Source directory $SOURCE_DIR is not empty or failed to delete."
 fi
 
 log NORMAL "Task ID $TASK_ID completed successfully."
