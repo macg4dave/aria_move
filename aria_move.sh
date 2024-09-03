@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Variables for paths (no trailing slashes)
 DOWNLOAD="/mnt/World/incoming"
@@ -49,35 +49,35 @@ find_unique_name() {
     echo "$dir/$new_base"
 }
 
-# Function to move files and handle errors
-move_file() {
+# Function to sync files and handle errors using rsync
+sync_file() {
     local src=$1
     local dst_dir=$2
 
-    log DEBUG "Attempting to move file $src to directory $dst_dir"
+    log DEBUG "Attempting to sync file $src to directory $dst_dir"
 
     if [ ! -d "$dst_dir" ]; then
         mkdir -p "$dst_dir" || { log ERROR "Failed to create directory $dst_dir."; exit 1; }
     fi
 
     local dst=$(find_unique_name "$dst_dir/$(basename "$src")")
-    mv --backup=t "$src" "$dst" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to move $src to $dst."; exit 1; }
+    rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src" "$dst" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src to $dst."; exit 1; }
 
-    log INFO "Moved $src to $dst."
+    log INFO "Synced $src to $dst and removed source."
 }
 
-# Function to move all files within a directory
-move_directory() {
+# Function to sync all files within a directory
+sync_directory() {
     local src_dir=$1
     local dst_dir=$2
 
-    log DEBUG "Attempting to move directory $src_dir to $dst_dir"
+    log DEBUG "Attempting to sync directory $src_dir to $dst_dir"
 
     mkdir -p "$dst_dir" || { log ERROR "Failed to create directory $dst_dir."; exit 1; }
 
-    mv --backup=t "$src_dir" "$dst_dir" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to move $src_dir to $dst_dir."; exit 1; }
+    rsync -a --backup --suffix=_rsync_backup --remove-source-files "$src_dir/" "$dst_dir/" >> "$LOG_FILE" 2>&1 || { log ERROR "Failed to sync $src_dir to $dst_dir."; exit 1; }
 
-    log INFO "Moved directory $src_dir to $dst_dir."
+    log INFO "Synced directory $src_dir to $dst_dir and removed source."
 }
 
 # Main script starts here
@@ -91,20 +91,21 @@ fi
 
 # Determine the source and destination directories
 SOURCE_DIR=$(dirname "$SOURCE_FILE")
-DESTINATION_DIR=$(echo "$SOURCE_DIR" | sed "s,$DOWNLOAD,$COMPLETE,")
+RELATIVE_DIR=$(realpath --relative-to="$DOWNLOAD" "$SOURCE_DIR")
+DESTINATION_DIR="$COMPLETE/$RELATIVE_DIR"
 
 log DEBUG "SOURCE_DIR is $SOURCE_DIR"
 log DEBUG "DESTINATION_DIR is $DESTINATION_DIR"
 
-# Check if SOURCE_FILE is part of a directory and move the entire directory
+# Check if SOURCE_FILE is part of a directory and sync the entire directory
 if [ "$(basename "$SOURCE_DIR")" != "$(basename "$DOWNLOAD")" ]; then
-    log DEBUG "Moving entire directory as the source file is within a subdirectory"
-    move_directory "$SOURCE_DIR" "$COMPLETE"
+    log DEBUG "Syncing entire directory as the source file is within a subdirectory"
+    sync_directory "$SOURCE_DIR" "$DESTINATION_DIR"
 else
-    log DEBUG "Moving a single file $SOURCE_FILE"
-    move_file "$SOURCE_FILE" "$DESTINATION_DIR"
+    log DEBUG "Syncing a single file $SOURCE_FILE"
+    sync_file "$SOURCE_FILE" "$DESTINATION_DIR"
 fi
 
 log NORMAL "Task ID $TASK_ID completed successfully."
-log NORMAL "Moving $SOURCE_FILE completed successfully."
+log NORMAL "Syncing $SOURCE_FILE completed successfully."
 exit 0
