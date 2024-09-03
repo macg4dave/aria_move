@@ -4,10 +4,14 @@
 DOWNLOAD="/mnt/World/incoming"
 COMPLETE="/mnt/World/completed"
 LOG_FILE="/mnt/World/mvcompleted.log"
+
+#Set log level
+LOG_LEVEL=2  # 1=NORMAL, 2=NORMAL+ERROR, 3=NORMAL+ERROR+INFO, 4=NORMAL+INFO+ERROR+DEBUG
+
+#aria2 output
 TASK_ID=$1
 NUM_FILES=$2
 SOURCE_FILE=$3
-LOG_LEVEL=1  # 1=NORMAL, 2=NORMAL+INFO, 3=NORMAL+INFO+ERROR, 4=NORMAL+DEBUG+INFO+ERROR
 
 # Function to log messages based on log level
 log() {
