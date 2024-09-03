@@ -58,12 +58,10 @@
 <h2>Examples</h2>
 <p>Here’s an example of how you might configure and use the script:</p>
 <pre><code>#!/bin/sh
-
 DOWNLOAD="/mnt/World/incoming"
 COMPLETE="/mnt/World/completed"
 LOG_FILE="/mnt/World/mvcompleted.log"
 LOG_LEVEL=4
-
 </code></pre>
 
 <h2>Contributing</h2>
